@@ -16,7 +16,6 @@ import cucumber.api.event.WriteEvent;
 import cucumber.api.formatter.Formatter;
 import cucumber.api.formatter.NiceAppendable;
 import gherkin.ast.Background;
-import gherkin.ast.DocString;
 import gherkin.ast.Feature;
 import gherkin.ast.ScenarioDefinition;
 import gherkin.ast.Step;
@@ -90,7 +89,6 @@ final class JSONFormatter implements Formatter {
         }
     };
 
-    @SuppressWarnings("WeakerAccess") // Used by PluginFactory
     public JSONFormatter(Appendable out) {
         this.out = new NiceAppendable(out);
     }
@@ -171,8 +169,6 @@ final class JSONFormatter implements Formatter {
             featureMap.put("description", feature.getDescription() != null ? feature.getDescription() : "");
             featureMap.put("line", feature.getLocation().getLine());
             featureMap.put("id", TestSourcesModel.convertToId(feature.getName()));
-            featureMap.put("tags", feature.getTags());
-
         }
         return featureMap;
     }
@@ -232,15 +228,15 @@ final class JSONFormatter implements Formatter {
         Map<String, Object> stepMap = new HashMap<String, Object>();
         stepMap.put("name", testStep.getStepText());
         stepMap.put("line", testStep.getStepLine());
-        TestSourcesModel.AstNode astNode = testSources.getAstNode(currentFeatureFile, testStep.getStepLine());
         if (!testStep.getStepArgument().isEmpty()) {
             Argument argument = testStep.getStepArgument().get(0);
             if (argument instanceof PickleString) {
-                stepMap.put("doc_string", createDocStringMap(argument, astNode));
+                stepMap.put("doc_string", createDocStringMap(argument));
             } else if (argument instanceof PickleTable) {
                 stepMap.put("rows", createDataTableList(argument));
             }
         }
+        TestSourcesModel.AstNode astNode = testSources.getAstNode(currentFeatureFile, testStep.getStepLine());
         if (astNode != null) {
             Step step = (Step) astNode.node;
             stepMap.put("keyword", step.getKeyword());
@@ -249,14 +245,11 @@ final class JSONFormatter implements Formatter {
         return stepMap;
     }
 
-    private Map<String, Object> createDocStringMap(Argument argument, TestSourcesModel.AstNode astNode) {
+    private Map<String, Object> createDocStringMap(Argument argument) {
         Map<String, Object> docStringMap = new HashMap<String, Object>();
         PickleString docString = ((PickleString)argument);
         docStringMap.put("value", docString.getContent());
         docStringMap.put("line", docString.getLocation().getLine());
-        if (astNode != null) {
-            docStringMap.put("content_type", ((DocString)((Step)astNode.node).getArgument()).getContentType());
-        }
         return docStringMap;
     }
 
